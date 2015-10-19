@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-require 'twitter'
 require 'base64'
 require 'zlib'
 require 'openssl'
@@ -93,23 +92,11 @@ Plugin.create :mikutter_suruyatsu do
     regenerate if not defined? @consumer_key or not defined? @consumer_secret
     request_oauth_token unless token_registered?
     if token_registered? and not defined? @client
-      
-      if defined? Twitter::REST
-        @client = Twitter::REST::Client.new do |c|
-          c.consumer_key = @consumer_key
-          c.consumer_secret = @consumer_secret
-          c.oauth_token = UserConfig[:mikutter_suruyatsu_oauth_token]
-          c.oauth_token_secret = UserConfig[:mikutter_suruyatsu_oauth_token_secret]
-        end
-      else
-        Twitter.configure do |c|
-          c.consumer_key = @consumer_key
-          c.consumer_secret = @consumer_secret
-          c.oauth_token = UserConfig[:mikutter_suruyatsu_oauth_token]
-          c.oauth_token_secret = UserConfig[:mikutter_suruyatsu_oauth_token_secret]
-        end
-        @client = Twitter.client
-      end
+      @client = MikuTwitter.new
+      @client.consumer_key    = @consumer_key
+      @client.consumer_secret = @consumer_secret
+      @client.a_token         = UserConfig[:mikutter_suruyatsu_oauth_token]
+      @client.a_secret        = UserConfig[:mikutter_suruyatsu_oauth_token_secret]
     end
   end
 
@@ -130,10 +117,10 @@ Plugin.create :mikutter_suruyatsu do
       begin
         Thread.new(watch, gtk_postbox) { |w, postbox|
           if w.instance_of? Message
-            @client.update(message, :in_reply_to_status_id => w.id)
+            @client.update({message: message, replyto: w.id})
             postbox.destroy
           else
-            @client.update(message)
+            @client.update({message: message})
           end
         }
       rescue Exception => e
